@@ -53,11 +53,17 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "semphr.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 
+SemaphoreHandle_t LEDMutex;
+SemaphoreHandle_t BlueSemaphore;
+SemaphoreHandle_t RedSemaphore;
+SemaphoreHandle_t GreenSemaphore;
+SemaphoreHandle_t prioInvers;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -76,48 +82,271 @@ void Delay_Nonsense(uint32_t * DelayCounter, uint32_t const * TargetCount){
 	}
 	*DelayCounter = 0;
 }
+
+//mutex *********************
+/*
 	void Led_BlueBlink(void *pvParameters){
 		const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
 		uint32_t BlueDelay = 0;
 		const uint32_t TargetCount = 160000;
 
 		for(;;){
-			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_RESET);
-			  HAL_Delay(500);
-			  Delay_Nonsense(&BlueDelay, &TargetCount);
-			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
-			  Delay_Nonsense(&BlueDelay, &TargetCount);
-			  HAL_Delay(500);
+
+			for(int i = 0; i < 10; i++){
+				vTaskDelay(xDelay);
+			}
+			if(xSemaphoreTake(LEDMutex, (TickType_t ) 10) == pdTRUE){
+				  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_RESET);
+				  Delay_Nonsense(&BlueDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
+				  Delay_Nonsense(&BlueDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  xSemaphoreGive(LEDMutex);
+			}
 		}
 	}
 	void Led_RedBlink(void *pvParameters){
-		const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+		const TickType_t xDelay = 100 / portTICK_PERIOD_MS;
 		uint32_t RedDelay = 0;
 		const uint32_t TargetCount = 160000;
 
 		for(;;){
-			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
-			  Delay_Nonsense(&RedDelay, &TargetCount);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
-			  Delay_Nonsense(&RedDelay, &TargetCount);
-			  HAL_Delay(500);
+			for(int i = 0; i < 10; i++){
+				vTaskDelay(xDelay);
+			}
+			if(xSemaphoreTake(LEDMutex, (TickType_t ) 10) == pdTRUE){
+				  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+				  Delay_Nonsense(&RedDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+				  Delay_Nonsense(&RedDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  xSemaphoreGive(LEDMutex);
+			}
 		}
 	}
 	void Led_GreenBlink(void *pvParameters){
-		const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+		const TickType_t xDelay = 250 / portTICK_PERIOD_MS;
 		uint32_t GreenDelay = 0;
-		const uint32_t TargetCount = 160000;
+		const uint32_t TargetCount = 200000;
 
 		for(;;){
-			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
-			  Delay_Nonsense(&GreenDelay, &TargetCount);
-			  HAL_Delay(500);
-			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
-			  Delay_Nonsense(&GreenDelay, &TargetCount);
-			  HAL_Delay(500);
+			for(int i = 0; i < 10; i++){
+				vTaskDelay(xDelay);
+			}
+			if(xSemaphoreTake(LEDMutex, (TickType_t ) 10) == pdTRUE){
+				  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+				  Delay_Nonsense(&GreenDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+				  Delay_Nonsense(&GreenDelay, &TargetCount);
+				  vTaskDelay(xDelay);
+				  xSemaphoreGive(LEDMutex);
+			}
 		}
 	}
+*/
+
+	//mutex end***************
+
+	void Led_BlueBlink(void *pvParameters){
+		xSemaphoreGive(GreenSemaphore);
+		const TickType_t xDelay = 300 / portTICK_PERIOD_MS;
+		uint32_t BlueDelay = 0;
+		const uint32_t TargetCount = 160000;
+		bool LedState = false;
+		 xSemaphoreGive(RedSemaphore);
+		for(;;){
+
+
+			if(xSemaphoreTake(RedSemaphore, (TickType_t) 100) == pdTRUE){
+
+				if(LedState == false){
+					 HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Blue_Pin, GPIO_PIN_RESET);
+				}else{
+					HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
+				}
+				LedState ^= 1;
+				Delay_Nonsense(&BlueDelay, &TargetCount);
+				vTaskDelay(xDelay);
+				xSemaphoreGive(BlueSemaphore);
+			}
+
+
+		}
+	}
+	void Led_RedBlink(void *pvParameters){
+		const TickType_t xDelay = 300 / portTICK_PERIOD_MS;
+		uint32_t RedDelay = 0;
+		const uint32_t TargetCount = 160000;
+		bool LedState = false;
+		for(;;){
+
+
+			if(xSemaphoreTake(GreenSemaphore, (TickType_t) 100) == pdTRUE){
+
+				if(LedState == false){
+					 HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+				}else{
+					HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+				}
+				LedState ^= 1;
+				Delay_Nonsense(&RedDelay, &TargetCount);
+				vTaskDelay(xDelay);
+				  xSemaphoreGive(RedSemaphore);
+			}
+
+		}
+	}
+	void Led_GreenBlink(void *pvParameters){
+		const TickType_t xDelay = 300 / portTICK_PERIOD_MS;
+		uint32_t GreenDelay = 0;
+		const uint32_t TargetCount = 160000;
+		bool LedState = false;
+		for(;;){
+
+			if(xSemaphoreTake(BlueSemaphore, (TickType_t) 100) == pdTRUE){
+
+				if(LedState == false){
+					 HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+				}else{
+					HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+				}
+				LedState ^= 1;
+				Delay_Nonsense(&GreenDelay, &TargetCount);
+				vTaskDelay(xDelay);
+				xSemaphoreGive(GreenSemaphore);
+			}
+
+
+		}
+	}
+
+
+/*
+void Led_BlueBlink(void *pvParameters){
+	const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+	uint32_t BlueDelay = 0;
+	const uint32_t TargetCount = 160000;
+	bool LedState = false;
+	for(;;){
+
+
+		if(!(xSemaphoreTake(prioInvers, (TickType_t) 10) == pdTRUE)){
+
+			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_RESET);
+			  Delay_Nonsense(&BlueDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
+			  Delay_Nonsense(&BlueDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  xSemaphoreGive(prioInvers);
+		}
+
+
+	}
+}
+void Led_RedBlink(void *pvParameters){
+	const TickType_t xDelay = 100 / portTICK_PERIOD_MS;
+	uint32_t RedDelay = 0;
+	const uint32_t TargetCount = 160000;
+	bool LedState = false;
+
+	for(;;){
+
+
+		if(xSemaphoreTake(prioInvers, (TickType_t) 10) == pdTRUE){
+
+			if(LedState == false){
+				 HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+			}else{
+				HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+			}
+			LedState ^= 1;
+			Delay_Nonsense(&RedDelay, &TargetCount);
+			vTaskDelay(xDelay);
+		}
+
+	}
+}
+void Led_GreenBlink(void *pvParameters){
+	const TickType_t xDelay = 250 / portTICK_PERIOD_MS;
+	uint32_t GreenDelay = 0;
+	const uint32_t TargetCount = 200000;
+	bool LedState = false;
+	for(;;){
+
+		HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+		Delay_Nonsense(&GreenDelay, &TargetCount);
+		vTaskDelay(xDelay);
+		HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+		Delay_Nonsense(&GreenDelay, &TargetCount);
+		vTaskDelay(xDelay);
+
+
+	}
+}
+*/
+/*
+void Led_BlueBlink(void *pvParameters){
+	const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+	uint32_t BlueDelay = 0;
+	const uint32_t TargetCount = 160000;
+
+	for(;;){
+
+		for(int i = 0; i < 10; i++){
+			vTaskDelay(xDelay);
+		}
+		if(xSemaphoreTake(LEDMutex, (TickType_t ) 10) == pdTRUE){
+			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_RESET);
+			  Delay_Nonsense(&BlueDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
+			  Delay_Nonsense(&BlueDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  xSemaphoreGive(LEDMutex);
+		}
+	}
+}
+void Led_RedBlink(void *pvParameters){
+	const TickType_t xDelay = 100 / portTICK_PERIOD_MS;
+	uint32_t RedDelay = 0;
+	const uint32_t TargetCount = 160000;
+
+	for(;;){
+		for(int i = 0; i < 10; i++){
+			vTaskDelay(xDelay);
+		}
+		if(xSemaphoreTake(LEDMutex, (TickType_t ) 10) == pdTRUE){
+			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+			  Delay_Nonsense(&RedDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+			  Delay_Nonsense(&RedDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  xSemaphoreGive(LEDMutex);
+		}
+	}
+}
+void Led_GreenBlink(void *pvParameters){
+	const TickType_t xDelay = 250 / portTICK_PERIOD_MS;
+	uint32_t GreenDelay = 0;
+	const uint32_t TargetCount = 200000;
+
+	for(;;){
+
+
+			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+			  Delay_Nonsense(&GreenDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+			  Delay_Nonsense(&GreenDelay, &TargetCount);
+			  vTaskDelay(xDelay);
+
+	}
+}*/
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -132,8 +361,7 @@ void Delay_Nonsense(uint32_t * DelayCounter, uint32_t const * TargetCount){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
+	 /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
 
@@ -155,6 +383,22 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 
+	HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LED_Blue_GPIO_Port, LED_Blue_Pin, GPIO_PIN_SET);
+
+
+	 xTaskCreate(Led_GreenBlink, (const char* const)"led_green", configMINIMAL_STACK_SIZE, 0, 2, 0);
+	 xTaskCreate(Led_RedBlink, (const char* const)"led_red", configMINIMAL_STACK_SIZE, 0, 3, 0);
+	 xTaskCreate(Led_BlueBlink, (const char* const)"led_blue", configMINIMAL_STACK_SIZE, 0, 1, 0);
+	 LEDMutex = xSemaphoreCreateMutex();
+
+	 BlueSemaphore = xSemaphoreCreateBinary();
+	 RedSemaphore = xSemaphoreCreateBinary();
+	 GreenSemaphore = xSemaphoreCreateBinary();
+
+	 prioInvers = xSemaphoreCreateBinary();
+
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -167,12 +411,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
 
-	  xTaskCreate(Led_GreenBlink, (const char* const)"led_green", configMINIMAL_STACK_SIZE, 0, 3, 0);
-	  xTaskCreate(Led_RedBlink, (const char* const)"led_red", configMINIMAL_STACK_SIZE, 0, 3, 0);
-	  xTaskCreate(Led_BlueBlink, (const char* const)"led_blue", configMINIMAL_STACK_SIZE, 0, 1, 0);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -301,7 +543,6 @@ void assert_failed(uint8_t* file, uint32_t line)
 /**
   * @}
   */
-
 /**
   * @}
   */

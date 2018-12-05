@@ -69,6 +69,8 @@
      PA2   ------> USART2_TX
      PA3   ------> USART2_RX
 */
+
+
 void MX_GPIO_Init(void)
 {
 
